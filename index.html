@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Параллакс: фон + большой логотип</title>
+
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        min-height: 100vh;
+        overflow: hidden;
+        font-family: sans-serif;
+        user-select: none;
+      }
+
+      .bg-parallax {
+        position: fixed;
+        top: -20vh;
+        left: -20vh;
+        right: -20vh;
+        bottom: -20vh;
+
+        z-index: 0;
+
+        background-image: url('my-bg.jpg');
+        background-size: cover;
+        background-position: center;
+
+        will-change: transform;
+        pointer-events: none;
+      }
+
+      .bg-overlay {
+        position: fixed;
+        top: 0; left: 0; right: 0; bottom: 0;
+        background: rgba(15, 17, 26, 0.6);
+        z-index: 1;
+        pointer-events: none;
+      }
+
+      .site-logo-wrapper {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 3;
+      }
+
+      /* Размер логотипа: 100x100 px, !important гарантирует применение */
+      .site-logo {
+        width: 300px !important;
+        height: 300px !important;
+        object-fit: contain;
+        border-radius: 12px;
+      }
+
+      .scene {
+        position: relative;
+        width: 400px;
+        height: 400px;
+        z-index: 2;
+      }
+
+      .bottle-wrapper {
+        position: absolute;
+        top: 0; left: 0; right: 0; bottom: 0;
+        cursor: grab;
+
+        transform: translate3d(0, 0, 0) rotate(0deg);
+        transform-origin: 50% 8%;
+
+        will-change: transform;
+        pointer-events: auto;
+        touch-action: none;
+        outline: none;
+      }
+
+      .bottle-wrapper:active {
+        cursor: grabbing;
+      }
+
+      .bottle {
+        position: absolute;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background-image: url('bottle.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: 1;
+        pointer-events: none;
+      }
+
+      .play-area {
+        position: absolute;
+        top: 130px; left: 70px; right: 70px; bottom: 50px;
+        z-index: 3;
+        overflow: hidden;
+        pointer-events: none;
+      }
+
+      .subscriber {
+        position: absolute;
+        width: 36px; height: 36px;
+        pointer-events: none;
+        background-size: contain;
+        background-repeat: no-repeat;
+        transform-origin: center center;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="bg-parallax" id="bg-layer"></div>
+    <div class="bg-overlay"></div>
+
+    <!-- Логотип: большой, 100x100 px -->
+    <div class="site-logo-wrapper">
+      <!-- Если файл называется my logo.png (с пробелом), верни пробел здесь -->
+      <img src="my-logo.png" alt="Логотип" class="site-logo" />
+    </div>
+
+    <div class="scene">
+      <div class="bottle-wrapper" id="draggable">
+        <div class="bottle"></div>
+        <div class="play-area" id="play-area"></div>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        const bgLayer = document.getElementById('bg-layer');
+        const draggable = document.getElementById('draggable');
+        const playArea = document.getElementById('play-area');
+
+        if (!bgLayer || !draggable || !playArea) {
+          console.error('Не найдены элементы с нужными id.');
+          return;
+        }
+
+        const parallaxStrength = 0.06;
+        let mouseX = 0;
+        let mouseY = 0;
+
+        function updateParallax() {
+          const rect = bgLayer.getBoundingClientRect();
+          const centerX = rect.left + rect.width / 2;
+          const centerY = rect.top + rect.height / 2;
+
+          const dx = mouseX - centerX;
+          const dy = mouseY - centerY;
+
+          const tx = -dx * parallaxStrength;
+          const ty = -dy * parallaxStrength;
+
+          bgLayer.style.transform = `translate(${tx}px, ${ty}px)`;
+        }
+
+        window.addEventListener('mousemove', (e) => {
+          mouseX = e.clientX;
+          mouseY = e.clientY;
+          updateParallax();
+        });
+
+        window.addEventListener('touchmove', (e) => {
+          const touch = e.touches[0];
+          mouseX = touch.clientX;
+          mouseY = touch.clientY;
+          updateParallax();
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+          updateParallax();
+        });
+
+        const physics = {
+          gravity: 0.7,
+          inertia: 1.15,
+          airFriction: 0.985,
+          bounceX: 0.65,
+          bounceY: 0.5,
+          floorFriction: 0.90,
+          maxSpeed: 30
+        };
+
+        const pendulum = {
+          angle: 0,
+          angularVelocity: 0,
+          strength: 0.12,
+          damping: 0.65,
+          spring: 0.08,
+          maxAngle: 10
+        };
+
+        const returnSpring = {
+          strength: 0.04,
+          damping: 0.60
+        };
+
+        const drag = {
+          dragging: false,
+          startMouseX: 0, startMouseY: 0,
+          startX: 0, startY: 0,
+          lastMouseX: 0, lastMouseY: 0,
+          velocityX: 0, velocityY: 0
+        };
+
+        let bottleX = 0;
+        let bottleY = 0;
+        let previousBottleX = 0;
+        let previousBottleY = 0;
+
+        let returnVelocityX = 0;
+        let returnVelocityY = 0;
+
+        let bottleVelocityX = 0;
+        let bottleVelocityY = 0;
+        let previousBottleVelocityX = 0;
+        let previousBottleVelocityY = 0;
+
+        const bounds = { w: 0, h: 0 };
+
+        function updateBounds() {
+          const rect = playArea.getBoundingClientRect();
+          bounds.w = rect.width - 36;
+          bounds.h = rect.height - 36;
+        }
+        updateBounds();
+
+        class Particle {
+          constructor() {
+            this.el = document.createElement('div');
+            this.el.classList.add('subscriber');
+            this.el.style.backgroundImage = "url('sprite.png')";
+
+            const imgTest = new Image();
+            imgTest.src = 'sprite.png';
+            imgTest.onerror = () => {
+              console.error('❌ Картинка sprite.png не найдена!');
+              this.el.style.backgroundColor = 'red';
+              this.el.style.border = '2px solid white';
+            };
+
+            playArea.appendChild(this.el);
+
+            this.x = 0; this.y = 0;
+            this.vx = 0; this.vy = 0;
+            this.rotate = 0; this.angularVelocity = 0;
+            this.initialized = false;
+          }
+
+          initialize() {
+            this.x = bounds.w / 2;
+            this.y = bounds.h - 10;
+            this.initialized = true;
+          }
+
+          update(accelerationX, accelerationY) {
+            if (!this.initialized) this.initialize();
+
+            this.vx -= accelerationX * physics.inertia;
+            this.vy -= accelerationY * physics.inertia;
+            this.vy += physics.gravity;
+
+            const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+            if (speed > physics.maxSpeed) {
+              const factor = physics.maxSpeed / speed;
+              this.vx *= factor;
+              this.vy *= factor;
+            }
+
+            this.x += this.vx;
+            this.y += this.vy;
+
+            if (this.x <= 0) {
+              this.x = 0;
+              this.vx *= -physics.bounceX;
+              this.angularVelocity += Math.abs(this.vx) * 0.25;
+            } else if (this.x >= bounds.w) {
+              this.x = bounds.w;
+              this.vx *= -physics.bounceX;
+              this.angularVelocity -= Math.abs(this.vx) * 0.25;
+            }
+
+            if (this.y <= 0) {
+              this.y = 0;
+              this.vy *= -physics.bounceY;
+            }
+
+            if (this.y >= bounds.h) {
+              this.y = bounds.h;
+              if (Math.abs(this.vy) > 1) {
+                this.vy *= -physics.bounceY;
+              } else {
+                this.vy = 0;
+              }
+              this.vx *= physics.floorFriction;
+              this.angularVelocity += this.vx * 0.025;
+            }
+
+            this.vx *= physics.airFriction;
+            this.vy *= physics.airFriction;
+            this.angularVelocity *= 0.96;
+            this.rotate += this.angularVelocity;
+
+            this.el.style.left = this.x + 'px';
+            this.el.style.top = this.y + 'px';
+            this.el.style.transform = `rotate(${this.rotate}deg)`;
+          }
+        }
+
+        const particles = [new Particle()];
+
+        function renderBottle() {
+          draggable.style.transform =
+            `translate3d(${bottleX}px, ${bottleY}px, 0) rotate(${pendulum.angle}deg)`;
+        }
+
+        function animate() {
+          bottleVelocityX = bottleX - previousBottleX;
+          bottleVelocityY = bottleY - previousBottleY;
+
+          const accelerationX = bottleVelocityX - previousBottleVelocityX;
+          const accelerationY = bottleVelocityY - previousBottleVelocityY;
+
+          previousBottleX = bottleX;
+          previousBottleY = bottleY;
+          previousBottleVelocityX = bottleVelocityX;
+          previousBottleVelocityY = bottleVelocityY;
+
+          const targetAngle = Math.max(
+            -pendulum.maxAngle,
+            Math.min(pendulum.maxAngle, bottleVelocityX * 1.2)
+          );
+
+          pendulum.angularVelocity += (targetAngle - pendulum.angle) * pendulum.strength;
+          pendulum.angularVelocity *= pendulum.damping;
+          pendulum.angle += pendulum.angularVelocity;
+
+          if (!drag.dragging) {
+            const returnDX = drag.startX - bottleX;
+            const returnDY = drag.startY - bottleY;
+
+            returnVelocityX += returnDX * returnSpring.strength;
+            returnVelocityY += returnDY * returnSpring.strength;
+
+            returnVelocityX *= returnSpring.damping;
+            returnVelocityY *= returnSpring.damping;
+
+            bottleX += returnVelocityX;
+            bottleY += returnVelocityY;
+
+            pendulum.angularVelocity += (-pendulum.angle) * pendulum.spring;
+            pendulum.angularVelocity *= 0.92;
+          } else {
+            returnVelocityX = 0;
+            returnVelocityY = 0;
+          }
+
+          renderBottle();
+          particles.forEach(p => p.update(accelerationX, accelerationY));
+
+          requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        function onDragStart(e) {
+          e.preventDefault();
+          drag.dragging = true;
+
+          const ev = e.touches ? e.touches[0] : e;
+          drag.startMouseX = ev.clientX;
+          drag.startMouseY = ev.clientY;
+          drag.lastMouseX = ev.clientX;
+          drag.lastMouseY = ev.clientY;
+
+          drag.startX = bottleX;
+          drag.startY = bottleY;
+
+          drag.velocityX = 0; drag.velocityY = 0;
+          pendulum.angularVelocity *= 0.4;
+        }
+
+        function onDragMove(e) {
+          if (!drag.dragging) return;
+          e.preventDefault();
+
+          const ev = e.touches ? e.touches[0] : e;
+
+          const mouseX = ev.clientX - drag.startMouseX;
+          const mouseY = ev.clientY - drag.startMouseY;
+
+          bottleX = drag.startX + mouseX;
+          bottleY = drag.startY + mouseY;
+
+          drag.velocityX = ev.clientX - drag.lastMouseX;
+          drag.velocityY = ev.clientY - drag.lastMouseY;
+
+          drag.lastMouseX = ev.clientX;
+          drag.lastMouseY = ev.clientY;
+        }
+
+        function onDragEnd() {
+          drag.dragging = false;
+          pendulum.angularVelocity += drag.velocityX * 0.03;
+        }
+
+        draggable.addEventListener('mousedown', onDragStart, { passive: false });
+        document.addEventListener('mousemove', onDragMove, { passive: false });
+        document.addEventListener('mouseup', onDragEnd, { passive: false });
+
+        draggable.addEventListener('touchstart', onDragStart, { passive: false });
+        document.addEventListener('touchmove', onDragMove, { passive: false });
+        document.addEventListener('touchend', onDragEnd, { passive: false });
+      });
+    </script>
+  </body>
+</html>
