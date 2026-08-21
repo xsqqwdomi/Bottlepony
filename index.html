@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="ru" style="background-color:#8fa5c9;">
   <head>
     <meta charset="UTF-8" />
     <title>Релакс-игра</title>
     
-    <!-- Подключите эту строку в head один раз -->
     <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
     <style>
@@ -22,6 +21,7 @@
         position: relative;
       }
 
+      /* --- Обновленный блок для фона --- */
       .bg-parallax {
         position: fixed;
         top: -10vh;
@@ -29,24 +29,95 @@
         right: -10vh;
         bottom: -10vh;
         z-index: 0;
-        background-image: url('my-bg.jpg');
-        background-size: cover;
-        background-position: center;
         will-change: transform;
         pointer-events: none;
       }
 
-      .bg-overlay {
-        position: fixed;
+      .bg-layer-image {
+        position: absolute;
         top: 0; left: 0; right: 0; bottom: 0;
-        background: rgba(30, 17, 26, 0.6);
-        z-index: 1;
-        pointer-events: none;
+        background-size: cover;
+        background-position: center;
+        /* Плавное изменение прозрачности в течение 3 секунд */
+        transition: opacity 3s ease-in-out; 
       }
+
+      .bg-day {
+        /* Впиши сюда название своего дневного фона (если он PNG, поменяй расширение) */
+        background-image: url('my-bg.jpg'); 
+        z-index: 1;
+      }
+
+      .bg-night {
+        /* Теперь здесь правильно указан .png */
+        background-image: url('bg-night.png'); 
+        z-index: 2;
+        opacity: 0; /* Изначально ночной фон прозрачный */
+      }
+
+      .bg-night.active {
+        opacity: 1; /* При добавлении класса active он плавно проявится */
+      }
+
+      .bg-clouds {
+        /* Облака поверх ночного фона, появляются вместе с ним */
+        background-image: url('clouds.png');
+        z-index: 3;
+        opacity: 0;
+      }
+
+      .bg-clouds.active {
+        opacity: 1;
+      }
+
+      /* --- Падающая звезда (только ночью, летит за облаками) --- */
+      .shooting-star {
+        position: absolute;
+        top: 10%;
+        right: 14%;
+        width: 70px;
+        height: 70px;
+        background-image: url('star.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        opacity: 0;
+        pointer-events: none;
+        z-index: 2; /* ниже облаков (z-index 3), чтобы звезда мелькала ЗА ними */
+        filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9))
+                drop-shadow(0 0 16px rgba(173, 196, 255, 0.7));
+      }
+
+      @keyframes shootingStarArc {
+        0%   { transform: translate(0, 0);        opacity: 0; }
+        10%  { opacity: 1; }
+        90%  { opacity: 1; }
+        100% { transform: translate(-65vw, 105vh); opacity: 0; }
+      }
+
+      @keyframes shootingStarTwinkle {
+        0%, 100% {
+          filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.9))
+                  drop-shadow(0 0 16px rgba(173, 196, 255, 0.7))
+                  brightness(1);
+        }
+        50% {
+          filter: drop-shadow(0 0 11px rgba(255, 255, 255, 1))
+                  drop-shadow(0 0 24px rgba(173, 196, 255, 0.95))
+                  brightness(1.5);
+        }
+      }
+
+      .shooting-star.fly {
+        animation:
+          shootingStarArc 4s cubic-bezier(0.4, 0, 0.2, 1) forwards,
+          shootingStarTwinkle 0.45s ease-in-out infinite;
+      }
+      /* --------------------------------- */
 
       .site-logo-wrapper {
         position: fixed;
-        top: 20px;
+        top: -230px;
         left: 20px;
         z-index: 3;
       }
@@ -60,9 +131,10 @@
 
       .scene {
         position: relative;
-        width: 400px;
-        height: 400px;
+        width: 480px;
+        height: 480px;
         z-index: 2;
+        margin-left: 60px; /* визуальная центровка — физика бутылки считается от реальных координат, поэтому не ломается */
       }
 
       .bottle-wrapper {
@@ -90,9 +162,27 @@
         pointer-events: none;
       }
 
+      .brand {
+        position: absolute;
+        top: 50px;                /* высота посадки — на стыке пробки и горлышка */
+        left: 36%;                /* ближе к центру арта бутылки, не в пустое поле */
+        width: 138px;
+        height: 138px;
+        margin-left: -69px;
+        background-image: url('brand.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: center;
+        transform-origin: 50% 0%; /* точка крепления — сверху, как будто висит на ниточке */
+        pointer-events: none;
+        z-index: 5;              /* поверх картинки бутылки */
+        will-change: transform;
+      }
+
       .play-area {
         position: absolute;
-        top: 130px; left: 70px; right: 70px; bottom: 50px;
+        top: 150px; left: 105px; right: 105px; 
+        bottom: 80px; 
         z-index: 3;
         overflow: hidden;
         pointer-events: none;
@@ -107,28 +197,28 @@
         transform-origin: center center;
       }
 
-      /* --- Панель управления звуком --- */
       .sound-panel-toggle {
         position: fixed;
         top: 15px;
         right: 15px;
         z-index: 10;
-        background: rgba(255, 255, 255, 0.9);
-        border: 1px solid rgba(0,0,0,0.1);
-        border-radius: 8px;
-        width: 48px;
-        height: 48px;
+        background: transparent;   /* убрали белую подложку-шаблон */
+        border: none;
+        width: 130px;
+        height: 130px;
         display: flex;
         justify-content: center;
         align-items: center;
         cursor: pointer;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-        transition: all 0.2s ease;
+        transition: transform 0.2s ease, filter 0.2s ease;
+        background-image: url('daytime_button.png');
+        background-size: contain;  /* показываем картинку целиком, без обрезки */
+        background-repeat: no-repeat;
+        background-position: center;
+        font-size: 0; /* прячем текстовую ноту, теперь используем картинку */
       }
       .sound-panel-toggle:hover { 
-          background: white; 
-          transform: scale(1.05); 
-          box-shadow: 0 4px 15px rgba(0,0,0,0.12);
+          filter: brightness(1.1);
       }
       
       .sound-panel-dropdown {
@@ -160,15 +250,14 @@
           min-height: 150px;
       }
 
-      /* Текстовые подписи (теперь точно влезут) */
       .dropdown-title, .slider-label-text {
           text-shadow: 0px 1px 2px rgba(0,0,0,0.8);
           font-family: 'Press Start 2P', cursive;
-          font-size: 7px; /* Сделали еще меньше на всякий случай */
+          font-size: 7px;
           line-height: 1.1;
           letter-spacing: 0.5px;
           color: #FFD700;
-          margin-left: 30px; /* Сдвинули левее под ширину панели */
+          margin-left: 30px;
           margin-top: -5px;
           margin-bottom: 5px;
           text-transform: uppercase;
@@ -179,7 +268,7 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 8px; /* Уменьшили отступ между строками */
+        margin-bottom: 8px;
       }
       .volume-row label {
         width: 20px;
@@ -187,23 +276,14 @@
         font-size: 16px;
       }
       
-      /* ЗОЛОТИСТЫЕ ПОЛЗУНКИ */
       .volume-row input[type="range"] {
         flex-grow: 1;
         accent-color: gold;
         height: 4px;
       }
-      .volume-row input[type="range"]::-webkit-slider-thumb {
-        appearance: none;
-        width: 14px;
-        height: 14px;
-        border-radius: 50%;
-        background: #B8860B;
-        border: 2px solid goldenrod;
-        cursor: pointer;
-        box-shadow: 0 0 2px black;
-      }
+      .volume-row input[type="range"]::-webkit-slider-thumb,
       .volume-row input[type="range"]::-moz-range-thumb {
+        appearance: none;
         width: 14px;
         height: 14px;
         border-radius: 50%;
@@ -216,8 +296,13 @@
   </head>
 
   <body>
-    <div class="bg-parallax" id="bg-layer"></div>
-    <div class="bg-overlay"></div>
+    <!-- Изменилась структура фона: теперь это контейнер с двумя картинками внутри -->
+    <div class="bg-parallax" id="bg-layer">
+      <div class="bg-layer-image bg-day"></div>
+      <div class="bg-layer-image bg-night" id="night-layer"></div>
+      <div class="shooting-star" id="shooting-star"></div>
+      <div class="bg-layer-image bg-clouds" id="clouds-layer"></div>
+    </div>
 
     <div class="site-logo-wrapper">
       <img src="my-logo.png" alt="Логотип" class="site-logo" />
@@ -244,6 +329,7 @@
     <div class="scene">
       <div class="bottle-wrapper" id="draggable">
         <div class="bottle"></div>
+        <div class="brand" id="brand"></div>
         <div class="play-area" id="play-area"></div>
       </div>
     </div>
@@ -253,6 +339,9 @@
   <script>
   document.addEventListener('DOMContentLoaded', () => {
     const bgLayer = document.getElementById('bg-layer');
+    const nightLayer = document.getElementById('night-layer');
+    const cloudsLayer = document.getElementById('clouds-layer');
+    const shootingStar = document.getElementById('shooting-star');
     const draggable = document.getElementById('draggable');
     const playArea = document.getElementById('play-area');
     const bgMusic = document.getElementById('bgMusic');
@@ -260,9 +349,73 @@
     const soundToggle = document.getElementById('soundToggle');
     const soundPanel = document.getElementById('soundPanel');
     const bgRange = document.getElementById('bgRange');
+
+    // диагностика: если daytime_button.png не найден, подсветим кнопку красным
+    if (soundToggle) {
+      const iconTest = new Image();
+      iconTest.src = 'daytime_button.png';
+      iconTest.onerror = () => {
+        soundToggle.style.backgroundColor = '#ff4444';
+        soundToggle.style.border = '2px solid white';
+      };
+      const nightIconTest = new Image();
+      nightIconTest.src = 'night_button.png';
+      nightIconTest.onerror = () => {
+        console.warn('night_button.png не найден рядом с index.html');
+      };
+      const nightPanelTest = new Image();
+      nightPanelTest.src = 'nighttime_soundbar.png';
+      nightPanelTest.onerror = () => {
+        console.warn('nighttime_soundbar.png не найден рядом с index.html');
+      };
+    }
     const sfxRange = document.getElementById('sfxRange');
 
     if (!bgLayer || !draggable || !playArea || !bgMusic) return;
+
+    /* --- Смена фона день/ночь (2 минуты) --- */
+    // 120000 миллисекунд = 2 минуты
+    const NIGHT_DURATION_MS = 120000;
+    let nightStartedAt = null; // момент (Date.now()), когда наступила ночь; null — сейчас день
+    setInterval(() => {
+      // toggle добавляет класс 'active', если его нет, и убирает, если он есть
+      nightLayer.classList.toggle('active');
+      cloudsLayer.classList.toggle('active'); // облака появляются/исчезают вместе с ночью
+      nightStartedAt = nightLayer.classList.contains('active') ? Date.now() : null;
+      if (soundToggle) {
+        soundToggle.style.backgroundImage = nightStartedAt !== null
+          ? "url('night_button.png')"
+          : "url('daytime_button.png')";
+      }
+      if (soundPanel) {
+        soundPanel.style.backgroundImage = nightStartedAt !== null
+          ? "url('nighttime_soundbar.png')"
+          : "url('sound-panel-bg.png')";
+      }
+    }, NIGHT_DURATION_MS); 
+
+    /* --- Падающая звезда: летит каждые 30 секунд, из случайного места, только в середине ночи --- */
+    function launchShootingStar() {
+      // случайное место старта — и по высоте, и по горизонтали
+      const topPos = Math.random() * 15;        // от 0% до 15% сверху
+      const rightPos = Math.random() * 55 + 30; // от 30% до 85% справа (ближе к правому краю,
+                                                 // чтобы диагональный путь оставался на экране)
+      shootingStar.style.top = topPos + '%';
+      shootingStar.style.right = rightPos + '%';
+
+      shootingStar.classList.remove('fly');
+      void shootingStar.offsetWidth; // сброс анимации, чтобы её можно было запустить повторно
+      shootingStar.classList.add('fly');
+    }
+    const EDGE_BUFFER_MS = 15000; // не запускать звезду в первые/последние 15 секунд ночи
+    setInterval(() => {
+      if (nightStartedAt === null) return; // сейчас день — звезда не летит
+      const elapsed = Date.now() - nightStartedAt;
+      const safeToLaunch = elapsed > EDGE_BUFFER_MS && elapsed < (NIGHT_DURATION_MS - EDGE_BUFFER_MS);
+      if (safeToLaunch) {
+        launchShootingStar();
+      }
+    }, 20000);
 
     const savedBgVol = parseFloat(localStorage.getItem('bgVolume')) || 0.3;
     const savedSfxVol = parseFloat(localStorage.getItem('sfxVolume')) || 0.3;
@@ -297,7 +450,7 @@
       }
     });
 
-    /* --- Физика игры (ВОССТАНОВЛЕНА И ИСПРАВЛЕНА) --- */
+    /* --- Физика игры --- */
     let lastRingTime = 0;
     const COOLDOWN_MS = 200;
     const IMPACT_THRESHOLD = 4.0;
@@ -305,6 +458,7 @@
       const now = performance.now();
       if (now - lastRingTime < COOLDOWN_MS) return;
       lastRingTime = now;
+      brandPendulum.angularVelocity += (Math.random() - 0.5) * 5; // марка вздрагивает от удара фигурки о стенки
       for(let i = 0; i < particles.length; i++) {
         const audio = particles[i].getAudioFromPool();
         if(audio) { audio.currentTime = 0; audio.play().catch(() => {}); break; }
@@ -327,13 +481,37 @@
     const pendulum = { angle: 0, angularVelocity: 0, strength: 0.12, damping: 0.65, spring: 0.08, maxAngle: 10 };
     const returnSpring = { strength: 0.04, damping: 0.60 };
     const drag = { dragging: false, startMouseX: 0, startMouseY: 0, startX: 0, startY: 0, lastMouseX: 0, lastMouseY: 0 };
+
+    /* --- Марка (brand) на горлышке: своя, более "болтливая" физика качания --- */
+    const brandEl = document.getElementById('brand');
+    const brandPendulum = { angle: 0, angularVelocity: 0, strength: 0.18, damping: 0.55, spring: 0.05, maxAngle: 20 };
+    // диагностика: если brand.png не найден рядом с index.html, покажем красный квадрат вместо пустоты
+    if (brandEl) {
+      const brandImgTest = new Image();
+      brandImgTest.src = 'brand.png';
+      brandImgTest.onerror = () => {
+        brandEl.style.backgroundColor = '#ff4444';
+        brandEl.style.border = '2px solid white';
+        brandEl.style.borderRadius = '50%';
+      };
+    }
     let bottleX = 0, bottleY = 0;
+    const HOME_X = 0, HOME_Y = 0; // фиксированный центр — бутылка всегда возвращается именно сюда
     let previousBottleX = 0, previousBottleY = 0;
     let returnVelocityX = 0, returnVelocityY = 0;
     let bottleVelocityX = 0, bottleVelocityY = 0;
     let previousBottleVelocityX = 0, previousBottleVelocityY = 0;
-    const bounds = { w: 0, h: 0 };
-    function updateBounds() { const r = playArea.getBoundingClientRect(); bounds.w = r.width - 36; bounds.h = r.height - 36; }
+    const bounds = { w: 0, h: 0, min: 0 };
+    const SPRITE_SIZE = 36;
+    // при вращении квадратного спрайта его углы по диагонали выходят за границы
+    // обычного (невращённого) квадрата — считаем этот запас и вычитаем его из арены
+    const ROTATION_MARGIN = Math.ceil((SPRITE_SIZE * Math.SQRT2 - SPRITE_SIZE) / 2);
+    function updateBounds() {
+      const r = playArea.getBoundingClientRect();
+      bounds.min = ROTATION_MARGIN;
+      bounds.w = r.width - SPRITE_SIZE - ROTATION_MARGIN;
+      bounds.h = r.height - SPRITE_SIZE - ROTATION_MARGIN;
+    }
     updateBounds();
 
     class Particle {
@@ -368,9 +546,9 @@
         if (speed > physics.maxSpeed) { const f = physics.maxSpeed / speed; this.vx *= f; this.vy *= f; }
         this.x += this.vx; this.y += this.vy;
         let hitWall = false;
-        if (this.x <= 0) { this.x = 0; if (Math.abs(this.vx) >= IMPACT_THRESHOLD) hitWall = true; this.vx *= -physics.bounceX; this.angularVelocity += Math.abs(this.vx) * 0.25; }
+        if (this.x <= bounds.min) { this.x = bounds.min; if (Math.abs(this.vx) >= IMPACT_THRESHOLD) hitWall = true; this.vx *= -physics.bounceX; this.angularVelocity += Math.abs(this.vx) * 0.25; }
         else if (this.x >= bounds.w) { this.x = bounds.w; if (Math.abs(this.vx) >= IMPACT_THRESHOLD) hitWall = true; this.vx *= -physics.bounceX; this.angularVelocity -= Math.abs(this.vx) * 0.25; }
-        if (this.y <= 0) { this.y = 0; if (Math.abs(this.vy) >= IMPACT_THRESHOLD) hitWall = true; this.vy *= -physics.bounceY; }
+        if (this.y <= bounds.min) { this.y = bounds.min; if (Math.abs(this.vy) >= IMPACT_THRESHOLD) hitWall = true; this.vy *= -physics.bounceY; }
         if (this.y >= bounds.h) { this.y = bounds.h; if (Math.abs(this.vy) >= IMPACT_THRESHOLD) hitWall = true; if (Math.abs(this.vy) > 1) { this.vy *= -physics.bounceY; } else { this.vy = 0; } this.vx *= physics.floorFriction; this.angularVelocity += this.vx * 0.025; }
         if (hitWall) { playRing(); }
         this.vx *= physics.airFriction; this.vy *= physics.airFriction; this.angularVelocity *= 0.96; this.rotate += this.angularVelocity;
@@ -381,8 +559,18 @@
 
     function renderBottle() { draggable.style.transform = `translate3d(${bottleX}px, ${bottleY}px, 0) rotate(${pendulum.angle}deg)`; }
     
-    /* Функция animate ВОССТАНОВЛЕНА */
     function animate() {
+      try {
+        animateFrame();
+      } catch (err) {
+        // если внутри что-то пошло не так — не даём анимации замереть навсегда,
+        // просто логируем ошибку и продолжаем со следующего кадра
+        console.error('Ошибка в цикле анимации, кадр пропущен:', err);
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function animateFrame() {
       bottleVelocityX = bottleX - previousBottleX; 
       bottleVelocityY = bottleY - previousBottleY;
       const accelerationX = bottleVelocityX - previousBottleVelocityX; 
@@ -395,9 +583,17 @@
       pendulum.angularVelocity *= pendulum.damping; 
       pendulum.angle += pendulum.angularVelocity;
 
+      // марка качается сильнее и дольше самой бутылки — реагирует на её скорость и на удары
+      const brandTarget = Math.max(-brandPendulum.maxAngle, Math.min(brandPendulum.maxAngle, bottleVelocityX * 1.8));
+      brandPendulum.angularVelocity += (brandTarget - brandPendulum.angle) * brandPendulum.strength;
+      brandPendulum.angularVelocity += (-brandPendulum.angle) * brandPendulum.spring; // всегда тянется обратно к центру
+      brandPendulum.angularVelocity *= brandPendulum.damping;
+      brandPendulum.angle += brandPendulum.angularVelocity;
+      if (brandEl) brandEl.style.transform = `rotate(${brandPendulum.angle}deg)`;
+
       if (!drag.dragging) {
-        const returnDX = drag.startX - bottleX; 
-        const returnDY = drag.startY - bottleY;
+        const returnDX = HOME_X - bottleX; 
+        const returnDY = HOME_Y - bottleY;
         returnVelocityX += returnDX * returnSpring.strength; 
         returnVelocityY += returnDY * returnSpring.strength;
         returnVelocityX *= returnSpring.damping; 
@@ -412,7 +608,19 @@
 
       renderBottle(); 
       particles.forEach(p => p.update(accelerationX, accelerationY));
-      requestAnimationFrame(animate);
+
+      // страховка: если позиция бутылки вышла из-под контроля (NaN или улетела далеко) — мгновенно чиним
+      const POSITION_LIMIT = 2000;
+      if (
+        !Number.isFinite(bottleX) || !Number.isFinite(bottleY) ||
+        Math.abs(bottleX) > POSITION_LIMIT || Math.abs(bottleY) > POSITION_LIMIT
+      ) {
+        bottleX = 0; bottleY = 0;
+        returnVelocityX = 0; returnVelocityY = 0;
+        pendulum.angle = 0; pendulum.angularVelocity = 0;
+        drag.dragging = false;
+        console.warn('Позиция бутылки вышла из допустимых пределов — сброшена в центр.');
+      }
     }
     animate();
 
