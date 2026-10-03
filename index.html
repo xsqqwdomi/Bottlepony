@@ -21,15 +21,20 @@
         position: relative;
       }
 
+      /* Исправление бага с фоном по краям экрана */
       .bg-parallax {
         position: fixed;
-        top: -10vh;
-        left: -10vh;
-        right: -10vh;
-        bottom: -10vh;
+        top: -150px;
+        left: -150px;
+        right: -150px;
+        bottom: -150px;
         z-index: 0;
         will-change: transform;
         pointer-events: none;
+        transform: translateZ(0);          /* форсируем отдельный GPU-слой */
+        backface-visibility: hidden;        /* убирает "застрявшие" квадраты при перерисовке */
+        -webkit-backface-visibility: hidden;
+        contain: paint;                     /* изолируем перерисовку этого слоя от соседних */
       }
 
       .bg-layer-image {
@@ -38,6 +43,9 @@
         background-size: cover;
         background-position: center;
         transition: opacity 3s ease-in-out; 
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
       }
 
       .bg-day {
@@ -223,7 +231,7 @@
       .coin-value {
         font-family: 'Press Start 2P', cursive;
         font-size: 44px; 
-        color: #F0A98A; /* мягкий закатный тон по умолчанию */
+        color: #F0A98A;
         text-shadow: 4px 4px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000;
         display: inline-block;
         transition: color 0.4s ease;
@@ -443,12 +451,133 @@
         transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), background-image 0.5s ease;
         display: flex;
         flex-direction: column;
-        padding: 120px 40px 40px; 
+        padding: 120px 60px 40px; 
         box-sizing: border-box;
       }
 
       .side-menu-panel.open {
         transform: translateX(0);
+      }
+
+      /* Стили для Магазина */
+      .shop-title {
+        font-family: 'Press Start 2P', cursive;
+        font-size: 14px;
+        color: #FFFACD; 
+        text-align: center;
+        margin-top: -70px; 
+        margin-bottom: 50px;
+        text-shadow: 2px 2px 0 #000;
+        text-transform: uppercase;
+        transition: color 1.5s ease;
+      }
+
+      .shop-title.night {
+        color: #93C5FD;
+      }
+
+      .shop-items-container {
+        display: flex;
+        flex-direction: column;
+        gap: 15px;
+        width: 100%;
+        align-items: flex-start;
+      }
+
+      .shop-item.yikes-card {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 12px;
+        background: transparent;
+        border: none;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      .yikes-preview {
+        width: 120px;
+        height: 64px;
+        background-image: url('Yikes.png');
+        background-size: contain;      
+        background-repeat: no-repeat;
+        background-position: 26px;   
+        image-rendering: pixelated; 
+        flex-shrink: 0;
+        transform: scale(1.2);  
+      }
+
+      /* Базовое состояние кнопки (картинка Price_3000) */
+      .shop-item-btn.yikes-btn {
+        width: 120px;
+        height: 40px;
+        background-image: url('Price_3000.png');
+        background-size: contain;
+        background-repeat: no-repeat;
+        background-position: left center;
+        background-color: transparent !important;
+        border: none !important;
+        padding: 0;
+        cursor: pointer;
+        transition: transform 0.1s, filter 0.2s, background-color 0.2s;
+        color: transparent;
+        outline: none;
+        font-family: 'Press Start 2P', cursive;
+        font-size: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .shop-item-btn.yikes-btn:hover {
+        transform: scale(1.05);
+        filter: brightness(1.15);
+      }
+
+      /* --- АНИМАЦИЯ ПЕРЕЛИВА (БЛИКА) --- */
+      @keyframes shimmerBtn {
+        0% { background-position: 0% 50%; }
+        50% { background-position: 100% 50%; }
+        100% { background-position: 0% 50%; }
+      }
+
+      /* --- ДЕНЬ (Нежно-персиковые тона) --- */
+      
+      /* ДОБАВИТЬ (Состояние .owned) */
+      .shop-item-btn.yikes-btn.owned {
+        background-image: linear-gradient(45deg, #ffe5b4, #ffccb3, #ffb3a7, #ffccb3) !important;
+        background-size: 300% 300% !important;
+        animation: shimmerBtn 3s ease infinite;
+        border: 2px solid #ffb3a7 !important;
+        border-radius: 6px;
+        color: #5c3a21; /* Мягкий темный текст */
+      }
+
+      /* УБРАТЬ (Состояние .added) */
+      .shop-item-btn.yikes-btn.added {
+        background-image: linear-gradient(45deg, #ffccb3, #ffaa99, #ff9988, #ffaa99) !important;
+        background-size: 300% 300% !important;
+        animation: shimmerBtn 3s ease infinite;
+        border: 2px solid #e68a73 !important;
+        border-radius: 6px;
+        color: #fff; /* Белый текст на контрастном фоне */
+      }
+
+      /* --- НОЧЬ (Нежно зелено-голубые тона) --- */
+      
+      /* ДОБАВИТЬ ночью (Состояние .owned.night) */
+      .shop-item-btn.yikes-btn.owned.night {
+        background-image: linear-gradient(45deg, #b5ffcc, #a6f4fa, #9cecfb, #a6f4fa) !important;
+        border: 2px solid #82d8d5 !important;
+        color: #1a4d4b;
+      }
+
+      /* УБРАТЬ ночью (Состояние .added.night) */
+      .shop-item-btn.yikes-btn.added.night {
+        background-image: linear-gradient(45deg, #9cecfb, #65c7f7, #60b4e3, #65c7f7) !important;
+        border: 2px solid #4a9ccc !important;
+        color: #fff;
       }
     </style>
   </head>
@@ -473,7 +602,15 @@
       <div class="menu-toggle-icon" id="menuToggleIcon"></div>
     </button>
 
-    <div class="side-menu-panel" id="sideMenuPanel"></div>
+    <div class="side-menu-panel" id="sideMenuPanel">
+      <div class="shop-title" id="shopTitle">Магазинчик</div>
+      <div class="shop-items-container">
+        <div class="shop-item yikes-card">
+          <div class="shop-item-preview yikes-preview"></div>
+          <button class="shop-item-btn yikes-btn" id="shopItemBtn1"></button>
+        </div>
+      </div>
+    </div>
 
     <div class="sound-widget-container" id="soundContainer">
       <button class="sound-panel-toggle" id="soundToggle" aria-label="Настройки звука">
@@ -530,6 +667,8 @@
     const sideMenuPanel = document.getElementById('sideMenuPanel');
     const mainScene = document.getElementById('mainScene');
     const soundContainer = document.getElementById('soundContainer');
+    const shopTitle = document.getElementById('shopTitle');
+    const shopItemBtn1 = document.getElementById('shopItemBtn1');
 
     if (!bgLayer || !draggable || !playArea || !bgMusic) return;
 
@@ -583,7 +722,6 @@
 
     function showCounterAndResetTimer() {
       if (coinPanelEl && coinPanelEl.classList.contains('hidden')) {
-        // счётчик был спрятан из-за бездействия — начинаем заново, с нуля
         resetCoins();
       }
       if(coinPanelEl) {
@@ -604,26 +742,12 @@
     let coins = 0;
     if (coinCounterEl) coinCounterEl.textContent = coins;
 
-    // Мягкая закатная палитра — теплые тона
     const sunsetPalette = [
-      '#F0A98A', // персиковый
-      '#E8917E', // мягкий коралловый
-      '#D98A9A', // пыльная роза
-      '#C79AB0', // лавандово-розовый
-      '#E3B57C', // абрикосовый
-      '#CE8B7B', // терракотовый приглушённый
-      '#B98FA3'  // мягкий сливовый
+      '#F0A98A', '#E8917E', '#D98A9A', '#C79AB0', '#E3B57C', '#CE8B7B', '#B98FA3'
     ];
 
-    // Ночная палитра — нежные, но холодные оттенки
     const nightPalette = [
-      '#B5C0D8', // мягкий лунный голубой
-      '#C4B5FD', // нежная холодная лаванда
-      '#93C5FD', // льдисто-голубой
-      '#A7F3D0', // мятно-серебристый
-      '#CBD5E1', // серебристо-серый
-      '#D8B4FE', // черничный пастельный
-      '#818CF8'  // прохладный васильковый
+      '#B5C0D8', '#C4B5FD', '#93C5FD', '#A7F3D0', '#CBD5E1', '#D8B4FE', '#818CF8'
     ];
 
     let colorIndex = 0;
@@ -654,7 +778,6 @@
       const isNight = nightStartedAt !== null;
       isNightMode = isNight;
 
-      // Плавно меняем цвет текущего счетчика под стиль нового времени суток
       if (coinCounterEl) {
         const currentPalette = isNightMode ? nightPalette : sunsetPalette;
         coinCounterEl.style.color = currentPalette[colorIndex % currentPalette.length];
@@ -684,6 +807,22 @@
             ? "url('NightMenuPanel.png')"
             : "url('DailyMenuPanel.png')";
         }
+
+        if (shopTitle) {
+          if (isNight) {
+            shopTitle.classList.add('night');
+          } else {
+            shopTitle.classList.remove('night');
+          }
+        }
+        
+        if (shopItemBtn1) {
+          if (isNight) {
+            shopItemBtn1.classList.add('night');
+          } else {
+            shopItemBtn1.classList.remove('night');
+          }
+        }
       }, 1500);
 
     }, NIGHT_DURATION_MS); 
@@ -699,6 +838,7 @@
       void shootingStar.offsetWidth;
       shootingStar.classList.add('fly');
     }
+
     const EDGE_BUFFER_MS = 15000;
     setInterval(() => {
       if (nightStartedAt === null) return;
@@ -852,15 +992,31 @@
     }
     updateBounds();
 
+    const particles = [];
+
     class Particle {
-      constructor() {
+      constructor(texture = 'sprite.png') {
         this.el = document.createElement('div');
         this.el.classList.add('subscriber');
-        this.el.style.backgroundImage = "url('sprite.png')";
+        this.el.style.backgroundImage = `url('${texture}')`;
         playArea.appendChild(this.el);
         this.x = 0; this.y = 0; this.vx = 0; this.vy = 0; this.rotate = 0; this.angularVelocity = 0; this.initialized = false;
+        particles.push(this);
       }
-      initialize() { this.x = bounds.w / 2; this.y = bounds.h - 10; this.initialized = true; }
+      initialize() { 
+        this.x = bounds.w / 2 + (Math.random() * 40 - 20); 
+        this.y = bounds.h - 10 - Math.random() * 15; 
+        this.initialized = true; 
+      }
+      destroy() {
+        if (this.el && this.el.parentNode) {
+          this.el.parentNode.removeChild(this.el);
+        }
+        const index = particles.indexOf(this);
+        if (index !== -1) {
+          particles.splice(index, 1);
+        }
+      }
       update(accelerationX, accelerationY) {
         if (!this.initialized) this.initialize();
         this.vx -= accelerationX * physics.inertia; this.vy -= accelerationY * physics.inertia; this.vy += physics.gravity;
@@ -883,7 +1039,84 @@
         this.el.style.left = this.x + 'px'; this.el.style.top = this.y + 'px'; this.el.style.transform = `rotate(${this.rotate}deg)`;
       }
     }
-    const particles = [new Particle()];
+
+    // Логика Магазина
+    let extraParticle = null;
+    let hasBoughtYikes = false;
+    
+    if (shopItemBtn1) {
+      shopItemBtn1.addEventListener('click', (e) => {
+        e.stopPropagation();
+        
+        if (!hasBoughtYikes) {
+          hasBoughtYikes = true;
+          extraParticle = new Particle('Yikes.png');
+          shopItemBtn1.classList.remove('owned');
+          shopItemBtn1.classList.add('added');
+          shopItemBtn1.textContent = 'УБРАТЬ'; 
+        } else {
+          if (!extraParticle) {
+            extraParticle = new Particle('Yikes.png');
+            shopItemBtn1.classList.remove('owned');
+            shopItemBtn1.classList.add('added');
+            shopItemBtn1.textContent = 'УБРАТЬ';
+          } else {
+            extraParticle.destroy();
+            extraParticle = null;
+            shopItemBtn1.classList.remove('added');
+            shopItemBtn1.classList.add('owned'); 
+            shopItemBtn1.textContent = 'ДОБАВИТЬ';
+          }
+        }
+      });
+    }
+
+    function resolveParticleCollision(p1, p2) {
+      if (!p1.initialized || !p2.initialized) return;
+
+      let dx = p2.x - p1.x;
+      let dy = p2.y - p1.y;
+      let dist = Math.sqrt(dx * dx + dy * dy);
+      const minDist = 34; 
+
+      if (dist === 0) {
+        dx = (Math.random() - 0.5) * 2;
+        dy = (Math.random() - 0.5) * 2;
+        dist = Math.sqrt(dx * dx + dy * dy);
+      }
+
+      if (dist < minDist) {
+        const overlap = minDist - dist;
+        const nx = dx / dist;
+        const ny = dy / dist;
+
+        p1.x -= nx * (overlap * 0.5);
+        p1.y -= ny * (overlap * 0.5);
+        p2.x += nx * (overlap * 0.5);
+        p2.y += ny * (overlap * 0.5);
+
+        const rvx = p2.vx - p1.vx;
+        const rvy = p2.vy - p1.vy;
+        const velAlongNormal = rvx * nx + rvy * ny;
+
+        if (velAlongNormal < 0) {
+          const restitution = 0.6;
+          const impulse = -(1 + restitution) * velAlongNormal / 2;
+
+          p1.vx -= impulse * nx;
+          p1.vy -= impulse * ny;
+          p2.vx += impulse * nx;
+          p2.vy += impulse * ny;
+
+          p1.angularVelocity += (Math.random() - 0.5) * 3;
+          p2.angularVelocity += (Math.random() - 0.5) * 3;
+
+          if (Math.abs(velAlongNormal) >= IMPACT_THRESHOLD * 0.7) {
+            if (playRing()) addCoin();
+          }
+        }
+      }
+    }
 
     function renderBottle() { draggable.style.transform = `translate3d(${bottleX}px, ${bottleY}px, 0) rotate(${pendulum.angle}deg)`; }
     
@@ -928,7 +1161,14 @@
       }
 
       renderBottle(); 
+
       particles.forEach(p => p.update(accelerationX, accelerationY));
+
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          resolveParticleCollision(particles[i], particles[j]);
+        }
+      }
 
       const POSITION_LIMIT = 2000;
       if (!Number.isFinite(bottleX) || !Number.isFinite(bottleY) || Math.abs(bottleX) > POSITION_LIMIT || Math.abs(bottleY) > POSITION_LIMIT) {
